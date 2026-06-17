@@ -1,0 +1,5 @@
+\[PUB\] India_runs_data_and_ai_challenge/
+__pycache__/
+*.pyc
+.system_generated/
+scratch/

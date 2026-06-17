@@ -1,0 +1,73 @@
+# Redrob Hackathon — Submission Metadata
+#
+# Filled in for the Intelligent Candidate Discovery & Ranking Challenge.
+
+# ============================================================================
+# Team identity
+# ============================================================================
+team_name: "Antigravity_Founding_Team"  # Used in leaderboard and announcements
+
+primary_contact:
+  name: "Participant Name"
+  email: "contact@example.com"   # Used for all organizer communication
+  phone: "+91-9999999999"        # Used for top-50 / top-10 outreach
+
+team_members:
+  - name: "Participant Name"
+    email: "contact@example.com"
+    role: "ML Engineer"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/Roopalgn/indiaruns"
+sandbox_link: "https://huggingface.co/spaces/Roopalgn/redrob-ranker"
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "Local Windows Machine"
+  cpu_cores: 8
+  ram_gb: 16
+  python_version: "3.11.4"
+  os: "Windows 11"
+  uses_gpu_for_inference: false                 # Must be false
+  has_network_during_ranking: false             # Must be false
+  pre_computation_required: false
+  pre_computation_time_minutes: 0
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Claude"
+  - "GitHub Copilot"
+
+ai_usage_summary: |
+  Used Claude for architectural guidance, data distribution analysis, and design.
+  Copilot was used for autocomplete during script formulation.
+  No candidate data was shared with external API endpoints during ranking execution.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Heuristic-first scoring system combining multi-level title categorization,
+  weighted keyword indexing over role descriptions (BM25-style term frequency capping),
+  experience fit penalties, location/relocation checks, and a service-only company penalty.
+  Scores are adjusted with a multiplicative behavioral modifier (recruiter response rate,
+  notice period, inactivity window, open to work status). Suspected honeypots are explicitly
+  filtered using deterministic startup founding dates and timeline mismatch checks.
+  Runs in less than 5 seconds on CPU.
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
