@@ -8,20 +8,20 @@
 team_name: "Antigravity_Founding_Team"  # Used in leaderboard and announcements
 
 primary_contact:
-  name: "Participant Name"
-  email: "contact@example.com"   # Used for all organizer communication
-  phone: "+91-9999999999"        # Used for top-50 / top-10 outreach
+  name: "FILL_YOUR_NAME"               # TODO: Replace with your real name
+  email: "FILL_YOUR_EMAIL"             # TODO: Replace with your real email
+  phone: "FILL_YOUR_PHONE"             # TODO: Replace with your real phone (+91-XXXXXXXXXX)
 
 team_members:
-  - name: "Participant Name"
-    email: "contact@example.com"
+  - name: "FILL_YOUR_NAME"
+    email: "FILL_YOUR_EMAIL"
     role: "ML Engineer"
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
 github_repo: "https://github.com/Roopalgn/indiaruns"
-sandbox_link: "https://huggingface.co/spaces/Roopalgn/redrob-ranker"
+sandbox_link: "TODO_FILL_SANDBOX_LINK"  # TODO: Add HuggingFace Space / Colab / Streamlit link
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 
 # ============================================================================
@@ -33,8 +33,8 @@ compute:
   ram_gb: 16
   python_version: "3.11.4"
   os: "Windows 11"
-  uses_gpu_for_inference: false                 # Must be false
-  has_network_during_ranking: false             # Must be false
+  uses_gpu_for_inference: false           # Must be false
+  has_network_during_ranking: false       # Must be false
   pre_computation_required: false
   pre_computation_time_minutes: 0
 
@@ -43,24 +43,37 @@ compute:
 # ============================================================================
 ai_tools_used:
   - "Claude"
+  - "Gemini"
   - "GitHub Copilot"
 
 ai_usage_summary: |
-  Used Claude for architectural guidance, data distribution analysis, and design.
-  Copilot was used for autocomplete during script formulation.
-  No candidate data was shared with external API endpoints during ranking execution.
+  Used Claude and Gemini (Antigravity) for architectural guidance, data distribution
+  analysis, scoring design, and code review. GitHub Copilot for autocomplete during
+  implementation. All engineering decisions (scoring weights, signal selection,
+  honeypot logic, reasoning extraction strategy) were made by the human participant
+  based on JD analysis and dataset inspection. No candidate data was sent to any
+  external API endpoint during ranking execution.
 
 # ============================================================================
 # Approach summary
 # ============================================================================
 methodology_summary: |
-  Heuristic-first scoring system combining multi-level title categorization,
-  weighted keyword indexing over role descriptions (BM25-style term frequency capping),
-  experience fit penalties, location/relocation checks, and a service-only company penalty.
-  Scores are adjusted with a multiplicative behavioral modifier (recruiter response rate,
-  notice period, inactivity window, open to work status). Suspected honeypots are explicitly
-  filtered using deterministic startup founding dates and timeline mismatch checks.
-  Runs in less than 5 seconds on CPU.
+  Deterministic multi-stage heuristic ranker. Five scoring components:
+  (1) Title relevance with soft multipliers for irrelevant backgrounds.
+  (2) Career evidence matching — past elite titles and system-building descriptions
+  combining action verbs with ML/search nouns in job history.
+  (3) Keyword presence matching with diversity capping (max 5 unique matches, not
+  raw frequency) across summary, headline, and career descriptions.
+  (4) Experience fit with a smooth penalty away from the 5-9 year target band.
+  (5) Location using both city name and country field; outside-India candidates
+  penalised unless willing to relocate.
+  Company quality scored from company size, industry alignment, and career industry
+  diversity. Education tier bonus uses the dataset's pre-computed tier field.
+  Platform-validated skill assessment scores provide an additional float-scale
+  bonus for relevant skills. Behavioral modifier uses 12 Redrob signals including
+  recruiter response rate, inactivity window, notice period, saved_by_recruiters_30d,
+  interview_completion_rate, verification status, and work mode preference.
+  Honeypots filtered via 5 deterministic checks. Runs in ~2 seconds on CPU.
 
 # ============================================================================
 # Declarations

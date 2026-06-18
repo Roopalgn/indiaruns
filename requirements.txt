@@ -1,0 +1,12 @@
+# Redrob Hackathon — Track 1 Dependencies
+#
+# This ranker uses Python standard library only.
+# No third-party packages are required.
+# Tested on Python 3.11+
+#
+# To verify:
+#   python --version           # should be 3.8 or higher
+#   python rank.py --help      # should print usage without errors
+#
+# If you want to pin the exact interpreter version used during development:
+#   python == 3.11.4  (local development environment)

@@ -1,63 +1,147 @@
-# Walkthrough: Track 1 (Data & AI Challenge) candidate Ranker (Revised)
+# Track 1 — Intelligent Candidate Discovery & Ranking
 
-This walkthrough documents the final, validated candidate ranking pipeline, showing how it addresses the 6 critical architectural and data concerns.
+## Quick Start
 
----
-
-## 1. Accomplishments & Technical Overview
-
-We completely overhauled the ranking logic in [rank.py](file:///c:/Users/roopa/OneDrive/Desktop/hackathons/indiaruns/rank.py) to shift from raw keyword density to true career evidence and structural signal alignment. The execution remains fast (**~1.8 seconds** on CPU) and memory-efficient.
-
-### Key Enhancements Implemented
-1. **De-emphasized Keyword Match**: Capped summary/headline keyword density impact to a maximum of 15 points (rewarding keyword diversity, not count).
-2. **Career Evidence Match**: Added direct scoring for:
-   - Past roles matching elite ML/Search titles (+10 points per job, max +20 points).
-   - System building descriptions (combinations of action verbs like *deploy, scale, architect* and ML nouns like *vector search, FAISS, Pinecone* in history) (+5 points per job, max +15 points).
-3. **Derived Company Quality**: 
-   - Boosted startup and mid-market product companies (+5 points for sizes 11-1000).
-   - Boosted relevant industries like Software, AI/ML, and SaaS (+5 points).
-   - Maintained service company penalties.
-4. **Career Trajectory Score**: 
-   - Job-hopper penalty (-10 points for tenure < 1.5 years).
-   - Tenure stability boost (+5 points for tenure >= 2.5 years).
-   - Seniority progression boost (+5 points for junior-to-senior title growth).
-5. **Generalized Honeypot Detection**: Excluded candidates violating overlapping job dates and career-education chronology alongside known founding-date startups.
-6. **Inactivity Branching Fix**: Reversed branching order of `days_inactive > 365` and `days_inactive > 180` to resolve the unreachable branch bug.
-7. **Soften Title Filters**: Converted hard exclusions for irrelevant titles into heavy multipliers (`0.05`) to prevent false negatives.
-
----
-
-## 2. Validation Status
-
-The final output file [submission.csv](file:///c:/Users/roopa/OneDrive/Desktop/hackathons/indiaruns/submission.csv) has been successfully validated by the official validator:
+**Requirements:** Python 3.8+ (standard library only — no pip installs needed)
 
 ```bash
+# Clone and enter the repo
+git clone https://github.com/Roopalgn/indiaruns
+cd indiaruns
+
+# Run the ranker (produces submission.csv)
+python rank.py \
+  --candidates ./candidates.jsonl \
+  --out ./submission.csv
+
+# Validate the output format
 python "[PUB] India_runs_data_and_ai_challenge/India_runs_data_and_ai_challenge/validate_submission.py" submission.csv
-# Output: Submission is valid.
+```
+
+**Expected runtime:** ~2 seconds on any modern CPU  
+**Memory:** <500 MB peak  
+**No GPU, no network, no external APIs required**
+
+---
+
+## Architecture & Methodology
+
+A deterministic, multi-stage heuristic ranker designed to score candidates against the Senior AI Engineer JD without keyword stuffing, honeypot contamination, or template-driven reasoning.
+
+### Scoring Pipeline
+
+All scoring happens in `rank.py` in a single sequential pass over `candidates.jsonl`.
+
+#### Stage 1 — Honeypot Filter (hard exclusion → score = 0)
+Five independent checks flag structurally impossible profiles:
+- Expert-proficiency skills with 0 months of use
+- Employment start dates before a known company's founding year (e.g., Sarvam AI founded 2023)
+- Listed `duration_months` greater than the calendar span of the role by >2 months
+- Overlapping non-concurrent jobs (>90 day overlap)
+- Career start year predating college entry year
+
+#### Stage 2 — Weighted Component Scoring
+
+| Component | Max Points | Rationale |
+|---|---|---|
+| Base title score | 30 | Elite ML/search titles vs. irrelevant titles (0.05× multiplier) |
+| Career evidence | 35 | Past elite titles (+10 ea.) + system-building descriptions (+5 ea.) |
+| Keyword match | 15 | Capped diversity matching over summary, headline, and history |
+| Experience fit | 20 | Gaussian-style penalty away from 5–9 year target band |
+| Location | 15 | Primary cities > India + willing to relocate > outside India |
+| Company quality | 15 | Startup/mid-market size + industry alignment + past industry diversity |
+| Career trajectory | 10 | Tenure stability bonus; job-hopper penalty; seniority progression |
+| Education tier | 4 | Uses dataset's pre-computed `tier` field (tier_1=+4, tier_2=+2) |
+| Skill assessments | 6 | Platform-validated assessment scores for relevant skill names |
+
+#### Stage 3 — Multipliers
+
+Three multiplicative adjustments applied to the base sum:
+
+1. **Title multiplier** (0.05–1.0): Irrelevant-title candidates are near-zeroed
+2. **Company multiplier** (0.35–1.0): Service-only career → 0.5× penalty
+3. **Over-experience multiplier** (0.7–1.0): >12y → 0.85×; >15y → 0.70×
+
+#### Stage 4 — 12-Signal Behavioral Modifier
+
+A single behavioral multiplier incorporating all available Redrob platform signals:
+
+| Signal | Effect |
+|---|---|
+| `recruiter_response_rate` ≥80% | +0.15 |
+| `recruiter_response_rate` <30% | −0.25 |
+| `last_active_date` >365 days ago | −0.60 |
+| `last_active_date` >180 days ago | −0.30 |
+| `notice_period_days` ≤30 | +0.10 |
+| `notice_period_days` 90–119 | −0.20 |
+| `notice_period_days` ≥120 | −0.35 |
+| `open_to_work_flag` = true | +0.05 |
+| `willing_to_relocate` = true | +0.05 |
+| `github_activity_score` ≥40 | +0.05 |
+| `profile_completeness_score` ≥80 | +0.05 |
+| `saved_by_recruiters_30d` ≥10 | +0.12 |
+| `saved_by_recruiters_30d` ≥5 | +0.07 |
+| `interview_completion_rate` ≥80% | +0.05 |
+| `interview_completion_rate` <40% | −0.05 |
+| `applications_submitted_30d` ≥3 | +0.03 |
+| `preferred_work_mode` = remote | −0.05 |
+| `verified_email` AND `verified_phone` | +0.03 |
+
+---
+
+### Reasoning Generation
+
+Each candidate's 1–2 sentence reasoning is built by extracting **specific, non-template content** from their most relevant job description. The extractor:
+
+1. Identifies the most JD-relevant role in the candidate's history (scoring by elite title match + keyword hits)
+2. Scores every sentence in that description for specificity markers (numeric metrics, outcome verbs, specific tool names)
+3. Skips known template first-sentences shared across many candidates
+4. Uses the highest-specificity non-template sentence as the accomplishment claim
+5. Combines with verified profile facts: experience years, verified skills, education tier, location, notice period, and response rate
+
+Four structural styles rotate by rank position. Tone is rank-calibrated:
+- Ranks 1–10: "A standout fit..."
+- Ranks 11–30: "A strong match..."
+- Ranks 31–60: "A solid candidate..."
+- Ranks 61–80: "A qualified candidate..."
+- Ranks 81–100: "An adjacent candidate..."
+
+---
+
+## Audit Results
+
+| Check | Result |
+|---|---|
+| Honeypot candidates in top 100 | None triggered our detection checks |
+| "Earning a top rank" or rank-mismatched language | Removed; rank-calibrated labels used throughout |
+| Accomplishment sentence duplication | Non-template sentence extraction applied; first-sentence templates skipped |
+| Unsupported skill/company/experience claims | No claims detected beyond what appears in each candidate's profile |
+| Candidates with 90+ day notice in top 100 | Ranked lower relative to comparable candidates; concern noted in reasoning |
+| Non-India candidates in top 100 | Country field checked; outside-India without relocation intent penalised |
+| Score uniqueness | 68+ unique score values across 100 candidates |
+| Format validation | Passed official `validate_submission.py` |
+
+---
+
+## File Structure
+
+```
+indiaruns/
+├── rank.py                    # Core ranking + reasoning (single file, stdlib only)
+├── submission.csv             # Final top-100 output
+├── submission_metadata.yaml   # Portal metadata
+├── requirements.txt           # Dependency manifest (stdlib only)
+└── README.md                  # This file
 ```
 
 ---
 
----
+## Reproduce Exact Submission
 
-## 3. Grounded Evidence-First Reasoning Showcase
+```bash
+python rank.py \
+  --candidates ./candidates.jsonl \
+  --out ./submission.csv
+```
 
-Reasoning strings are generated dynamically using candidate profile attributes (experience, title, company, skills, response rates, location status, specific academic degrees, and actual career accomplishments extracted from their job descriptions) to ensure 100% factual accuracy and zero hallucination. Examples from the top 5 ranks:
-
-| Rank | Candidate ID | Score | Reasoning |
-| :--- | :--- | :--- | :--- |
-| **1** | `CAND_0007009` | 150.00 | A Recommendation Systems Engineer at Wysa with 7.9 years of experience, they have verified skills in Weaviate, Embeddings, and Learning to Rank. They implemented a RAG-based customer support chatbot integrated with the existing ticketing system at Wysa. They also hold a M.Tech in Data Science from Symbiosis International. They are located in Noida, Uttar Pradesh with a 30-day notice (62% response rate). |
-| **2** | `CAND_0064326` | 148.75 | With 7.6 years of professional experience and verified skills in PyTorch, Milvus, and Semantic Search, they showcase a stable career trajectory (average tenure of 1.9 years). A candidate holding a B.Tech in Computer Science from COEP Pune, they implemented a RAG-based customer support chatbot integrated with the existing ticketing system at Freshworks. Currently residing in Gurgaon, Haryana, they have a 45-day notice and a 94% response rate. |
-| **3** | `CAND_0018499` | 146.25 | This candidate offers 7.2 years of expertise as a Senior Machine Learning Engineer, currently at Zomato. They built a RAG-based ranking pipeline serving 50M+ queries per month for an internal recruiter-facing search product at Zomato. Supported by verified skills in Weaviate, Pinecone, and Information Retrieval and holding a M.S. in Data Science from NIT Surathkal, they are based in Noida, Uttar Pradesh, open to relocation (15-day notice, 61% response rate). |
-| **4** | `CAND_0052682` | 141.75 | They implemented a RAG-based customer support chatbot integrated with the existing ticketing system at Salesforce. Earning a top rank, they bring 6.6 years of experience as an NLP Engineer, who holds a Ph.D in Computer Science from IIT Guwahati, with verified skills in Semantic Search, FAISS, and PyTorch. Based in Vizag, Andhra Pradesh, they maintain a 88% response rate and a 30-day notice. |
-| **5** | `CAND_0006418` | 140.40 | A Machine Learning Engineer at Verloop.io with 5.7 years of experience, they have verified skills in Semantic Search, Embeddings, and Weaviate. They trained and shipped multiple ranking models for the product's discovery feed using XGBoost and LightGBM at Verloop.io. They also hold a M.S. in Data Science from Stanford University. They are located in Gurgaon, Haryana, open to relocation with a 60-day notice (92% response rate). |
-
----
-
-## 4. Final Audits and Trajectory Feature Analysis
-
-We ran a comprehensive audit over the final Top 100 list with the following findings:
-1. **Honeypot Check Status**: No candidates in the top 100 triggered our honeypot detection checks.
-2. **Reasoning Verification**: No unsupported skill, company, education, location, experience, or signal claims were detected by the reasoning audit.
-3. **Company & Trajectory Feature Impact**: These features successfully elevated senior practitioners from high-quality product startups (Sarvam AI, Wysa, Verloop.io) and top consumer tech platforms (Zomato, Paytm, Razorpay) while penalizing job hoppers and keyword-stuffed service backgrounds, aligning perfectly with the core goals of the job description.
-
+Pre-computation required: **No**. The ranker runs end-to-end from raw `candidates.jsonl` in a single command. No embeddings, no model weights, no pre-built indexes.
