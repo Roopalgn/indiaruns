@@ -738,22 +738,24 @@ def generate_reasoning(cand, rank):
 
 def main():
     parser = argparse.ArgumentParser(description="Rank candidates for Track 1.")
-    parser.add_argument("--candidates", required=True, help="Path to candidates.jsonl or .jsonl.gz")
+    parser.add_argument("--candidates", required=True, help="Path to candidates.jsonl, .jsonl.gz, or .json")
     parser.add_argument("--out", required=True, help="Path to output submission.csv")
+    parser.add_argument("--top-n", type=int, default=100,
+                        help="Number of top candidates to output (default: 100). "
+                             "Use a smaller value for demo/sandbox runs with fewer candidates.")
     args = parser.parse_args()
 
     scored_candidates = []
     print("Reading and scoring candidates...")
 
-    # Support both plain .jsonl and gzipped .jsonl.gz
-    if args.candidates.endswith(".gz"):
+    # Auto-detect format: .json (array), .jsonl, or .jsonl.gz
+    candidates_path = args.candidates
+    if candidates_path.endswith(".gz"):
         import gzip
-        opener = lambda: gzip.open(args.candidates, "rt", encoding="utf-8")
-    else:
-        opener = lambda: open(args.candidates, "r", encoding="utf-8")
-
-    with opener() as f:
-        for line in f:
+        with gzip.open(candidates_path, "rt", encoding="utf-8") as f:
+            raw = f.read()
+        lines = raw.splitlines()
+        for line in lines:
             if not line.strip():
                 continue
             cand = json.loads(line)
@@ -761,19 +763,40 @@ def main():
             score = round(score_candidate(cand), 4)
             if score > 0:
                 scored_candidates.append((cid, score, cand))
+    elif candidates_path.endswith(".json"):
+        # JSON array format (e.g. sample_candidates.json)
+        with open(candidates_path, "r", encoding="utf-8") as f:
+            candidates_list = json.load(f)
+        for cand in candidates_list:
+            cid = cand["candidate_id"]
+            score = round(score_candidate(cand), 4)
+            if score > 0:
+                scored_candidates.append((cid, score, cand))
+    else:
+        # Plain .jsonl
+        with open(candidates_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                cand = json.loads(line)
+                cid = cand["candidate_id"]
+                score = round(score_candidate(cand), 4)
+                if score > 0:
+                    scored_candidates.append((cid, score, cand))
 
     # Deterministic sort: score descending, then candidate_id ascending for ties
     scored_candidates.sort(key=lambda x: (-x[1], x[0]))
 
-    top_100 = scored_candidates[:100]
+    top_n = min(getattr(args, 'top_n', 100), len(scored_candidates))
+    top_candidates = scored_candidates[:top_n]
     print(f"Scored {len(scored_candidates)} valid candidates.")
-    print(f"Top score: {top_100[0][1]:.4f}. Rank-100 score: {top_100[-1][1]:.4f}.")
+    print(f"Top score: {top_candidates[0][1]:.4f}. Rank-{top_n} score: {top_candidates[-1][1]:.4f}.")
 
-    print(f"Writing submission to {args.out}...")
+    print(f"Writing top {top_n} to {args.out}...")
     with open(args.out, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["candidate_id", "rank", "score", "reasoning"])
-        for i, (cid, score, cand) in enumerate(top_100):
+        for i, (cid, score, cand) in enumerate(top_candidates):
             rank = i + 1
             reasoning = generate_reasoning(cand, rank)
             writer.writerow([cid, rank, score, reasoning])
