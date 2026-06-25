@@ -9,12 +9,12 @@
 git clone https://github.com/Roopalgn/indiaruns
 cd indiaruns
 
-# Run the ranker (produces submission.csv)
+# Run the ranker (produces submission.xlsx)
 python rank.py \
   --candidates ./candidates.jsonl \
-  --out ./submission.csv
+  --out ./submission.xlsx
 
-# Validate the output format
+# Validate the output format (runs on CSV; a fallback CSV is created if openpyxl is not installed, or run rank.py with a .csv extension)
 python "[PUB] India_runs_data_and_ai_challenge/India_runs_data_and_ai_challenge/validate_submission.py" submission.csv
 ```
 
@@ -128,7 +128,7 @@ Four structural styles rotate by rank position. Tone is rank-calibrated:
 ```
 indiaruns/
 ├── rank.py                    # Core ranking + reasoning (single file, stdlib only)
-├── submission.csv             # Final top-100 output
+├── submission.xlsx            # Final top-100 output (Excel format for portal upload)
 ├── submission_metadata.yaml   # Portal metadata
 ├── requirements.txt           # Dependency manifest (stdlib only)
 └── README.md                  # This file
@@ -141,7 +141,7 @@ indiaruns/
 ```bash
 python rank.py \
   --candidates ./candidates.jsonl \
-  --out ./submission.csv
+  --out ./submission.xlsx
 ```
 
 Pre-computation required: **No**. The ranker runs end-to-end from raw `candidates.jsonl` in a single command. No embeddings, no model weights, no pre-built indexes.

@@ -22,7 +22,7 @@ team_members:
 # ============================================================================
 github_repo: "https://github.com/Roopalgn/indiaruns"
 sandbox_link: "https://colab.research.google.com/drive/1Yq-OgTxQGR1FfM2Nwik4iiTzwDMOA1lh?usp=sharing"
-reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.xlsx"
 
 # ============================================================================
 # Compute environment

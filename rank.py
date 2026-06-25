@@ -739,7 +739,7 @@ def generate_reasoning(cand, rank):
 def main():
     parser = argparse.ArgumentParser(description="Rank candidates for Track 1.")
     parser.add_argument("--candidates", required=True, help="Path to candidates.jsonl, .jsonl.gz, or .json")
-    parser.add_argument("--out", required=True, help="Path to output submission.csv")
+    parser.add_argument("--out", required=True, help="Path to output submission.xlsx or .csv")
     parser.add_argument("--top-n", type=int, default=100,
                         help="Number of top candidates to output (default: 100). "
                              "Use a smaller value for demo/sandbox runs with fewer candidates.")
@@ -793,13 +793,35 @@ def main():
     print(f"Top score: {top_candidates[0][1]:.4f}. Rank-{top_n} score: {top_candidates[-1][1]:.4f}.")
 
     print(f"Writing top {top_n} to {args.out}...")
-    with open(args.out, "w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["candidate_id", "rank", "score", "reasoning"])
-        for i, (cid, score, cand) in enumerate(top_candidates):
-            rank = i + 1
-            reasoning = generate_reasoning(cand, rank)
-            writer.writerow([cid, rank, score, reasoning])
+    if args.out.endswith(".xlsx"):
+        try:
+            import openpyxl
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.append(["candidate_id", "rank", "score", "reasoning"])
+            for i, (cid, score, cand) in enumerate(top_candidates):
+                rank = i + 1
+                reasoning = generate_reasoning(cand, rank)
+                ws.append([cid, rank, score, reasoning])
+            wb.save(args.out)
+        except ImportError:
+            csv_path = args.out.replace(".xlsx", ".csv")
+            print(f"WARNING: openpyxl is not installed. Saving as CSV at {csv_path} instead.")
+            with open(csv_path, "w", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["candidate_id", "rank", "score", "reasoning"])
+                for i, (cid, score, cand) in enumerate(top_candidates):
+                    rank = i + 1
+                    reasoning = generate_reasoning(cand, rank)
+                    writer.writerow([cid, rank, score, reasoning])
+    else:
+        with open(args.out, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["candidate_id", "rank", "score", "reasoning"])
+            for i, (cid, score, cand) in enumerate(top_candidates):
+                rank = i + 1
+                reasoning = generate_reasoning(cand, rank)
+                writer.writerow([cid, rank, score, reasoning])
 
     print("Done.")
 
