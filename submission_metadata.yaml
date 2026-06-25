@@ -15,12 +15,13 @@ primary_contact:
 team_members:
   - name: "Roopal Guha Neogi"
     email: "roopal.guhaneogi@gmail.com"
+    role: "ML Engineer"
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
 github_repo: "https://github.com/Roopalgn/indiaruns"
-sandbox_link: "https://colab.research.google.com/drive/1Yq-OgTxQGR1FfM2Nwik4iiTzwDMOA1lh?usp=sharing"  # Sandbox pending deployment; full repo + reproduce command available at this URL
+sandbox_link: "https://colab.research.google.com/drive/1Yq-OgTxQGR1FfM2Nwik4iiTzwDMOA1lh?usp=sharing"
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 
 # ============================================================================
@@ -69,7 +70,7 @@ methodology_summary: |
   Company quality scored from company size, industry alignment, and career industry
   diversity. Education tier bonus uses the dataset's pre-computed tier field.
   Platform-validated skill assessment scores provide an additional float-scale
-  bonus for relevant skills. Behavioral modifier uses 12 Redrob signals including
+  bonus for relevant skills. Behavioral modifier uses 18 Redrob signals including
   recruiter response rate, inactivity window, notice period, saved_by_recruiters_30d,
   interview_completion_rate, verification status, and work mode preference.
   Honeypots filtered via 5 deterministic checks. Runs in ~2 seconds on CPU.
