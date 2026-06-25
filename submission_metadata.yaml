@@ -8,20 +8,20 @@
 team_name: "Antigravity_Founding_Team"  # Used in leaderboard and announcements
 
 primary_contact:
-  name: "FILL_YOUR_NAME"               # TODO: Replace with your real name
-  email: "FILL_YOUR_EMAIL"             # TODO: Replace with your real email
-  phone: "FILL_YOUR_PHONE"             # TODO: Replace with your real phone (+91-XXXXXXXXXX)
+  name: "Roopal Guha Neogi"
+  email: "roopal.guhaneogi@gmail.com"
+  phone: "+91-9875543768"
 
 team_members:
-  - name: "FILL_YOUR_NAME"
-    email: "FILL_YOUR_EMAIL"
+  - name: "Roopal Guha Neogi"
+    email: "roopal.guhaneogi@gmail.com"
     role: "ML Engineer"
 
 # ============================================================================
 # Code and reproducibility
 # ============================================================================
 github_repo: "https://github.com/Roopalgn/indiaruns"
-sandbox_link: "TODO_FILL_SANDBOX_LINK"  # TODO: Add HuggingFace Space / Colab / Streamlit link
+sandbox_link: "https://github.com/Roopalgn/indiaruns"  # Sandbox pending deployment; full repo + reproduce command available at this URL
 reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
 
 # ============================================================================
